@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API - LONGCHAUUTH Pharmacy</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">
+            <i class="bi bi-flask"></i> Test API - LONGCHAUUTH Pharmacy
+        </h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-capsule"></i> Test Medicine API</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary mb-2" onclick="testGetMedicines()">
+                            <i class="bi bi-list"></i> Get All Medicines
+                        </button>
+                        <button class="btn btn-success mb-2" onclick="testGetActiveMedicines()">
+                            <i class="bi bi-check-circle"></i> Get Active Medicines
+                        </button>
+                        <button class="btn btn-info mb-2" onclick="testGetMedicineStats()">
+                            <i class="bi bi-graph-up"></i> Get Medicine Stats
+                        </button>
+                        <button class="btn btn-warning mb-2" onclick="testSearchMedicines()">
+                            <i class="bi bi-search"></i> Search Medicines
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-boxes"></i> Test Inventory API</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary mb-2" onclick="testGetInventory()">
+                            <i class="bi bi-list"></i> Get All Inventory
+                        </button>
+                        <button class="btn btn-success mb-2" onclick="testGetInStock()">
+                            <i class="bi bi-check-circle"></i> Get In Stock
+                        </button>
+                        <button class="btn btn-warning mb-2" onclick="testGetLowStock()">
+                            <i class="bi bi-exclamation-triangle"></i> Get Low Stock
+                        </button>
+                        <button class="btn btn-info mb-2" onclick="testGetInventoryStats()">
+                            <i class="bi bi-graph-up"></i> Get Inventory Stats
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-terminal"></i> API Response</h5>
+                    </div>
+                    <div class="card-body">
+                        <pre id="api-response" class="bg-light p-3" style="max-height: 400px; overflow-y: auto;">Click any button above to test API endpoints...</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-info-circle"></i> API Endpoints</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Medicine Endpoints:</h6>
+                                <ul class="list-unstyled">
+                                    <li><code>GET /api/medicines</code> - All medicines</li>
+                                    <li><code>GET /api/medicines/active</code> - Active medicines</li>
+                                    <li><code>GET /api/medicines/stats/count</code> - Medicine stats</li>
+                                    <li><code>GET /api/medicines/search?keyword=...</code> - Search</li>
+                                    <li><code>POST /api/medicines</code> - Add medicine</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Inventory Endpoints:</h6>
+                                <ul class="list-unstyled">
+                                    <li><code>GET /api/inventory</code> - All inventory</li>
+                                    <li><code>GET /api/inventory/in-stock</code> - In stock items</li>
+                                    <li><code>GET /api/inventory/low-stock</code> - Low stock items</li>
+                                    <li><code>GET /api/inventory/stats</code> - Inventory stats</li>
+                                    <li><code>POST /api/inventory/medicine/{id}/add-stock</code> - Add stock</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080/api';
+        
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                return {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: data
+                };
+            } catch (error) {
+                return {
+                    error: error.message
+                };
+            }
+        }
+        
+        function displayResponse(response) {
+            const responseElement = document.getElementById('api-response');
+            responseElement.textContent = JSON.stringify(response, null, 2);
+        }
+        
+        async function testGetMedicines() {
+            const response = await makeRequest(`${API_BASE_URL}/medicines`);
+            displayResponse(response);
+        }
+        
+        async function testGetActiveMedicines() {
+            const response = await makeRequest(`${API_BASE_URL}/medicines/active`);
+            displayResponse(response);
+        }
+        
+        async function testGetMedicineStats() {
+            const response = await makeRequest(`${API_BASE_URL}/medicines/stats/count`);
+            displayResponse(response);
+        }
+        
+        async function testSearchMedicines() {
+            const response = await makeRequest(`${API_BASE_URL}/medicines/search?keyword=amoxicillin`);
+            displayResponse(response);
+        }
+        
+        async function testGetInventory() {
+            const response = await makeRequest(`${API_BASE_URL}/inventory`);
+            displayResponse(response);
+        }
+        
+        async function testGetInStock() {
+            const response = await makeRequest(`${API_BASE_URL}/inventory/in-stock`);
+            displayResponse(response);
+        }
+        
+        async function testGetLowStock() {
+            const response = await makeRequest(`${API_BASE_URL}/inventory/low-stock`);
+            displayResponse(response);
+        }
+        
+        async function testGetInventoryStats() {
+            const response = await makeRequest(`${API_BASE_URL}/inventory/stats`);
+            displayResponse(response);
+        }
+    </script>
+</body>
+</html>
