@@ -28,6 +28,7 @@ CREATE TABLE medicines (
     code VARCHAR(50) NOT NULL UNIQUE,
     name VARCHAR(200) NOT NULL,
     generic_name VARCHAR(200),
+    image_url VARCHAR(500),
     category_id BIGINT,
     manufacturer_id BIGINT,
     unit VARCHAR(50) NOT NULL,

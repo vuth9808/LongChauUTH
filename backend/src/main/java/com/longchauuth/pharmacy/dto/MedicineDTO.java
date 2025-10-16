@@ -20,6 +20,7 @@ public class MedicineDTO {
     private String name;
 
     private String genericName;
+    private String imageUrl;
 
     private Long categoryId;
     private String categoryName;
@@ -95,6 +96,14 @@ public class MedicineDTO {
 
     public void setGenericName(String genericName) {
         this.genericName = genericName;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public Long getCategoryId() {
@@ -225,4 +234,3 @@ public class MedicineDTO {
         this.updatedAt = updatedAt;
     }
 }
-

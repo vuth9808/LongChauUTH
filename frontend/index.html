@@ -11,6 +11,27 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="css/style.css" rel="stylesheet">
+    <script>
+        (function() {
+            const API_BASE_URL = 'http://localhost:8080/api';
+            const token = sessionStorage.getItem('adminAuth');
+            if (!token) {
+                window.location.href = 'admin.html';
+                return;
+            }
+            fetch(`${API_BASE_URL}/admin/ping`, {
+                headers: { 'Authorization': `Basic ${token}` }
+            }).then(res => {
+                if (!res.ok) {
+                    sessionStorage.removeItem('adminAuth');
+                    window.location.href = 'admin.html';
+                }
+            }).catch(() => {
+                sessionStorage.removeItem('adminAuth');
+                window.location.href = 'admin.html';
+            });
+        })();
+    </script>
 </head>
 <body>
     <!-- Navigation -->
@@ -43,9 +64,14 @@
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <span class="navbar-text">
+                        <span class="navbar-text me-3">
                             <i class="bi bi-person-circle"></i> Quản trị viên
                         </span>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-outline-light btn-sm" onclick="logoutAdmin()">
+                            <i class="bi bi-box-arrow-right"></i> Đăng xuất
+                        </button>
                     </li>
                 </ul>
             </div>
@@ -162,6 +188,10 @@
                 <div class="col-12">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h2><i class="bi bi-capsule"></i> Quản lý thuốc</h2>
+                        <div class="btn-group me-2" role="group" aria-label="View toggle">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="toggleMedicineView('table')"><i class="bi bi-table"></i></button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="toggleMedicineView('cards')"><i class="bi bi-grid"></i></button>
+                        </div>
                         <button class="btn btn-primary" onclick="showAddMedicineModal()">
                             <i class="bi bi-plus-circle"></i> Thêm thuốc mới
                         </button>
@@ -200,7 +230,7 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-body">
-                            <div class="table-responsive">
+                            <div class="table-responsive" id="medicine-table-wrapper">
                                 <table class="table table-striped table-hover">
                                     <thead class="table-dark">
                                         <tr>
@@ -224,6 +254,7 @@
                                     </tbody>
                                 </table>
                             </div>
+                            <div id="medicine-cards" class="row g-3" style="display: none;"></div>
                         </div>
                     </div>
                 </div>
@@ -243,6 +274,10 @@
                             <button class="btn btn-warning" onclick="showExportModal()">
                                 <i class="bi bi-box-arrow-up"></i> Xuất kho
                             </button>
+                            <div class="btn-group ms-2" role="group" aria-label="View toggle">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="toggleInventoryView('table')"><i class="bi bi-table"></i></button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="toggleInventoryView('cards')"><i class="bi bi-grid"></i></button>
+                            </div>
                         </div>
                     </div>
                     <hr>
@@ -279,7 +314,7 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-body">
-                            <div class="table-responsive">
+                            <div class="table-responsive" id="inventory-table-wrapper">
                                 <table class="table table-striped table-hover">
                                     <thead class="table-dark">
                                         <tr>
@@ -303,6 +338,7 @@
                                     </tbody>
                                 </table>
                             </div>
+                            <div id="inventory-cards" class="row g-3" style="display:none;"></div>
                         </div>
                     </div>
                 </div>
@@ -371,6 +407,24 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
+                                    <label for="medicine-image-url" class="form-label">Hình ảnh (URL)</label>
+                                    <input type="url" class="form-control" id="medicine-image-url" placeholder="https://...">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="medicine-image-file" class="form-label">Tải ảnh lên (tùy chọn)</label>
+                                    <div class="input-group">
+                                        <input type="file" class="form-control" id="medicine-image-file" accept="image/*">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="uploadMedicineImage()">
+                                            Tải lên
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Sau khi tải, URL sẽ tự điền vào ô trên.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
                                     <label for="medicine-strength" class="form-label">Hàm lượng</label>
                                     <input type="text" class="form-control" id="medicine-strength">
                                 </div>
@@ -385,6 +439,173 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
                     <button type="button" class="btn btn-primary" onclick="addMedicine()">Thêm thuốc</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Medicine Modal -->
+    <div class="modal fade" id="editMedicineModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chỉnh sửa thuốc</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-medicine-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Mã thuốc</label>
+                                    <input type="text" class="form-control" id="edit-medicine-code" disabled>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Tên thuốc *</label>
+                                    <input type="text" class="form-control" id="edit-medicine-name" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Tên gốc</label>
+                                    <input type="text" class="form-control" id="edit-medicine-generic-name">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Đơn vị *</label>
+                                    <input type="text" class="form-control" id="edit-medicine-unit" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Danh mục *</label>
+                                    <select class="form-select" id="edit-medicine-category" required>
+                                        <option value="">-- Chọn danh mục --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Nhà sản xuất *</label>
+                                    <select class="form-select" id="edit-medicine-manufacturer" required>
+                                        <option value="">-- Chọn nhà sản xuất --</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Giá bán *</label>
+                                    <input type="number" class="form-control" id="edit-medicine-price" step="0.01" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Giá nhập *</label>
+                                    <input type="number" class="form-control" id="edit-medicine-cost-price" step="0.01" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Mã vạch</label>
+                                    <input type="text" class="form-control" id="edit-medicine-barcode">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Hình ảnh (URL)</label>
+                                    <input type="url" class="form-control" id="edit-medicine-image-url" placeholder="https://...">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Tải ảnh lên (tùy chọn)</label>
+                                    <div class="input-group">
+                                        <input type="file" class="form-control" id="edit-medicine-image-file" accept="image/*">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="uploadEditMedicineImage()">Tải lên</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Hàm lượng</label>
+                                    <input type="text" class="form-control" id="edit-medicine-strength">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Mô tả</label>
+                            <textarea class="form-control" id="edit-medicine-description" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" onclick="updateMedicine()">Lưu thay đổi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medicine Detail Modal -->
+    <div class="modal fade" id="medicineDetailModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="medicineDetailTitle">Chi tiết thuốc</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <img id="medicineDetailImage" alt="Medicine Image" style="width:100%;height:220px;object-fit:cover;border-radius:6px;display:none;" />
+                    <div class="mt-3">
+                        <div><strong>Mã:</strong> <span id="medicineDetailCode"></span></div>
+                        <div><strong>Tên gốc:</strong> <span id="medicineDetailGeneric"></span></div>
+                        <div><strong>Đơn vị:</strong> <span id="medicineDetailUnit"></span></div>
+                        <div><strong>Giá:</strong> <span id="medicineDetailPrice"></span></div>
+                        <div><strong>Trạng thái:</strong> <span id="medicineDetailStatus"></span></div>
+                        <div class="mt-2"><strong>Mô tả:</strong>
+                            <div id="medicineDetailDesc" class="small text-muted"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="medicineDetailEditBtn" type="button" class="btn btn-primary">Chỉnh sửa</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Detail Modal -->
+    <div class="modal fade" id="inventoryDetailModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="inventoryDetailTitle">Chi tiết tồn kho</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <img id="inventoryDetailImage" alt="Medicine Image" style="width:100%;height:220px;object-fit:cover;border-radius:6px;display:none;" />
+                    <div class="mt-3">
+                        <div><strong>Mã thuốc:</strong> <span id="inventoryDetailCode"></span></div>
+                        <div><strong>Tên thuốc:</strong> <span id="inventoryDetailName"></span></div>
+                        <div><strong>Tồn hiện tại:</strong> <span id="inventoryDetailCurrent"></span></div>
+                        <div><strong>Min/Max:</strong> <span id="inventoryDetailMinMax"></span></div>
+                        <div class="mt-2"><strong>Trạng thái:</strong> <span id="inventoryDetailStatus"></span></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 </div>
             </div>
         </div>
@@ -502,5 +723,11 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JS -->
     <script src="js/app.js"></script>
+    <script>
+        function logoutAdmin() {
+            try { sessionStorage.removeItem('adminAuth'); } catch (e) {}
+            window.location.href = 'admin.html';
+        }
+    </script>
 </body>
 </html>
