@@ -2,6 +2,7 @@
 
 // API Configuration
 const API_BASE_URL = 'http://localhost:8080/api';
+const ADMIN_AUTH_TOKEN = () => sessionStorage.getItem('adminAuth');
 
 // Global Variables
 let currentSection = 'dashboard';
@@ -63,6 +64,8 @@ function showMedicineManagement() {
     currentSection = 'medicine';
     updateActiveNavLink('medicine');
     loadMedicines();
+    // Default view: cards
+    toggleMedicineView('cards');
 }
 
 function showInventoryManagement() {
@@ -71,6 +74,8 @@ function showInventoryManagement() {
     currentSection = 'inventory';
     updateActiveNavLink('inventory');
     loadInventory();
+    // Default view: cards
+    toggleInventoryView('cards');
 }
 
 function hideAllSections() {
@@ -178,6 +183,7 @@ async function loadMedicines() {
 
 function displayMedicines(medicinesToShow) {
     const tbody = document.getElementById('medicine-table-body');
+    const cards = document.getElementById('medicine-cards');
     
     if (medicinesToShow.length === 0) {
         tbody.innerHTML = `
@@ -187,13 +193,17 @@ function displayMedicines(medicinesToShow) {
                 </td>
             </tr>
         `;
+        cards.innerHTML = '';
         return;
     }
     
     tbody.innerHTML = medicinesToShow.map(medicine => `
         <tr>
             <td><strong>${medicine.code}</strong></td>
-            <td>${medicine.name}</td>
+            <td>
+                ${medicine.imageUrl ? `<img src="${medicine.imageUrl}" alt="${medicine.name}" style="width:32px;height:32px;object-fit:cover;border-radius:4px;margin-right:8px;vertical-align:middle;" onerror="this.style.display='none'">` : ''}
+                <span>${medicine.name}</span>
+            </td>
             <td>${medicine.genericName || '-'}</td>
             <td>${medicine.unit}</td>
             <td>${formatCurrency(medicine.price)}</td>
@@ -213,6 +223,53 @@ function displayMedicines(medicinesToShow) {
             </td>
         </tr>
     `).join('');
+
+    cards.innerHTML = medicinesToShow.map(medicine => `
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+            <div class="card h-100" role="button" onclick="openMedicineModal(${medicine.id})">
+                ${medicine.imageUrl ? `<img src="${medicine.imageUrl}" class="card-img-top" alt="${medicine.name}" style="height:160px;object-fit:cover;">` : ''}
+                <div class="card-body">
+                    <h6 class="card-title mb-1">${medicine.name}</h6>
+                    <div class="text-muted small mb-2">${medicine.code}</div>
+                    <div class="mb-2">${getStatusBadge(medicine.status)}</div>
+                    <div class="fw-semibold">${formatCurrency(medicine.price)}</div>
+                </div>
+                <div class="card-footer bg-transparent border-top-0 pb-3">
+                    <div class="btn-group w-100" role="group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editMedicine(${medicine.id})"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-info" onclick="event.stopPropagation(); openMedicineModal(${medicine.id})"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteMedicine(${medicine.id})"><i class="bi bi-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function openMedicineModal(id) {
+    fetch(`${API_BASE_URL}/medicines/${id}`)
+        .then(res => res.json())
+        .then(m => {
+            document.getElementById('medicineDetailTitle').textContent = m.name || 'Chi tiết thuốc';
+            document.getElementById('medicineDetailCode').textContent = m.code || '';
+            document.getElementById('medicineDetailGeneric').textContent = m.genericName || '-';
+            document.getElementById('medicineDetailUnit').textContent = m.unit || '';
+            document.getElementById('medicineDetailPrice').textContent = formatCurrency(m.price || 0);
+            document.getElementById('medicineDetailStatus').innerHTML = getStatusBadge(m.status);
+            document.getElementById('medicineDetailDesc').textContent = m.description || '';
+            const img = document.getElementById('medicineDetailImage');
+            if (m.imageUrl) {
+                img.src = m.imageUrl;
+                img.style.display = 'block';
+            } else {
+                img.style.display = 'none';
+            }
+            const editBtn = document.getElementById('medicineDetailEditBtn');
+            editBtn.onclick = () => editMedicine(m.id);
+            const modal = new bootstrap.Modal(document.getElementById('medicineDetailModal'));
+            modal.show();
+        })
+        .catch(() => showAlert('Không tải được chi tiết thuốc', 'danger'));
 }
 
 function searchMedicines() {
@@ -258,6 +315,7 @@ async function loadInventory() {
 
 function displayInventory(inventoryToShow) {
     const tbody = document.getElementById('inventory-table-body');
+    const cards = document.getElementById('inventory-cards');
     
     if (inventoryToShow.length === 0) {
         tbody.innerHTML = `
@@ -267,30 +325,30 @@ function displayInventory(inventoryToShow) {
                 </td>
             </tr>
         `;
+        cards.innerHTML = '';
         return;
     }
     
     tbody.innerHTML = inventoryToShow.map(item => {
-        const medicine = item.medicine;
         const stockStatus = getStockStatus(item.currentStock, item.minStock, item.maxStock);
         
         return `
             <tr>
-                <td><strong>${medicine.code}</strong></td>
-                <td>${medicine.name}</td>
+                <td><strong>${item.medicineCode}</strong></td>
+                <td>${item.medicineName}</td>
                 <td><span class="badge ${stockStatus.badgeClass}">${item.currentStock}</span></td>
                 <td>${item.minStock}</td>
                 <td>${item.maxStock}</td>
                 <td>${stockStatus.badge}</td>
                 <td>
                     <div class="btn-group" role="group">
-                        <button class="btn btn-sm btn-outline-success" onclick="adjustStock(${item.id}, 'add')">
+                        <button class="btn btn-sm btn-outline-success" onclick="adjustStock(${item.medicineId}, 'add')">
                             <i class="bi bi-plus"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-warning" onclick="adjustStock(${item.id}, 'reduce')">
+                        <button class="btn btn-sm btn-outline-warning" onclick="adjustStock(${item.medicineId}, 'reduce')">
                             <i class="bi bi-dash"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-info" onclick="viewInventoryDetails(${item.id})">
+                        <button class="btn btn-sm btn-outline-info" onclick="viewInventoryDetails(${item.medicineId})">
                             <i class="bi bi-eye"></i>
                         </button>
                     </div>
@@ -298,6 +356,92 @@ function displayInventory(inventoryToShow) {
             </tr>
         `;
     }).join('');
+
+    cards.innerHTML = inventoryToShow.map(item => {
+        const stockStatus = getStockStatus(item.currentStock, item.minStock, item.maxStock);
+        return `
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                <div class="card h-100" role="button" onclick="openInventoryModal('${item.medicineCode}')">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-semibold">${item.medicineName}</div>
+                                <div class="text-muted small mb-2">${item.medicineCode}</div>
+                            </div>
+                            <div>${stockStatus.badge}</div>
+                        </div>
+                        <div class="mt-2 small">Tồn: <span class="badge ${stockStatus.badgeClass}">${item.currentStock}</span></div>
+                        <div class="text-muted small">Min/Max: ${item.minStock}/${item.maxStock}</div>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0 pb-3">
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); adjustStock(${item.medicineId}, 'add')"><i class="bi bi-plus"></i></button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="event.stopPropagation(); adjustStock(${item.medicineId}, 'reduce')"><i class="bi bi-dash"></i></button>
+                            <button class="btn btn-sm btn-outline-info" onclick="event.stopPropagation(); openInventoryModal('${item.medicineCode}')"><i class="bi bi-eye"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function openInventoryModal(medicineCode) {
+    // Try to find medicine image by code
+    const med = Array.isArray(medicines) ? medicines.find(m => m.code === medicineCode) : null;
+    const img = document.getElementById('inventoryDetailImage');
+    if (med && med.imageUrl) {
+        img.src = med.imageUrl;
+        img.style.display = 'block';
+    } else {
+        img.style.display = 'none';
+    }
+    // Fetch inventory details for more accurate numbers
+    fetch(`${API_BASE_URL}/inventory/search?keyword=${encodeURIComponent(medicineCode)}`)
+        .then(res => res.json())
+        .then(list => {
+            const item = Array.isArray(list) ? list.find(x => x.medicineCode === medicineCode) : null;
+            if (item) {
+                const stockStatus = getStockStatus(item.currentStock, item.minStock, item.maxStock);
+                document.getElementById('inventoryDetailTitle').textContent = item.medicineName || 'Chi tiết tồn kho';
+                document.getElementById('inventoryDetailCode').textContent = item.medicineCode || '';
+                document.getElementById('inventoryDetailName').textContent = item.medicineName || '';
+                document.getElementById('inventoryDetailCurrent').textContent = item.currentStock;
+                document.getElementById('inventoryDetailMinMax').textContent = `${item.minStock}/${item.maxStock}`;
+                document.getElementById('inventoryDetailStatus').innerHTML = stockStatus.badge;
+            }
+            const modal = new bootstrap.Modal(document.getElementById('inventoryDetailModal'));
+            modal.show();
+        })
+        .catch(() => {
+            // fallback: just open modal without details
+            const modal = new bootstrap.Modal(document.getElementById('inventoryDetailModal'));
+            modal.show();
+        });
+}
+
+function toggleMedicineView(mode) {
+    const tableWrapper = document.getElementById('medicine-table-wrapper');
+    const cards = document.getElementById('medicine-cards');
+    if (mode === 'cards') {
+        tableWrapper.style.display = 'none';
+        cards.style.display = 'flex';
+    } else {
+        tableWrapper.style.display = 'block';
+        cards.style.display = 'none';
+    }
+}
+
+function toggleInventoryView(mode) {
+    const tableWrapper = document.getElementById('inventory-table-wrapper');
+    const cards = document.getElementById('inventory-cards');
+    if (mode === 'cards') {
+        tableWrapper.style.display = 'none';
+        cards.style.display = 'flex';
+    } else {
+        tableWrapper.style.display = 'block';
+        cards.style.display = 'none';
+    }
 }
 
 function searchInventory() {
@@ -308,9 +452,9 @@ function searchInventory() {
     }
     
     const filtered = inventory.filter(item => 
-        item.medicine.name.toLowerCase().includes(keyword.toLowerCase()) ||
-        item.medicine.genericName?.toLowerCase().includes(keyword.toLowerCase()) ||
-        item.medicine.code.toLowerCase().includes(keyword.toLowerCase())
+        item.medicineName.toLowerCase().includes(keyword.toLowerCase()) ||
+        item.medicineGenericName?.toLowerCase().includes(keyword.toLowerCase()) ||
+        item.medicineCode.toLowerCase().includes(keyword.toLowerCase())
     );
     
     displayInventory(filtered);
@@ -385,6 +529,7 @@ async function addMedicine() {
         code: document.getElementById('medicine-code').value,
         name: document.getElementById('medicine-name').value,
         genericName: document.getElementById('medicine-generic-name').value,
+            imageUrl: document.getElementById('medicine-image-url').value,
         unit: document.getElementById('medicine-unit').value,
         price: parseFloat(document.getElementById('medicine-price').value),
         costPrice: parseFloat(document.getElementById('medicine-cost-price').value),
@@ -418,6 +563,44 @@ async function addMedicine() {
     }
 }
 
+async function updateMedicine() {
+    const modalEl = document.getElementById('editMedicineModal');
+    const id = modalEl.getAttribute('data-edit-id');
+    if (!id) return;
+
+    const payload = {
+        name: document.getElementById('edit-medicine-name').value,
+        genericName: document.getElementById('edit-medicine-generic-name').value,
+        unit: document.getElementById('edit-medicine-unit').value,
+        price: parseFloat(document.getElementById('edit-medicine-price').value),
+        costPrice: parseFloat(document.getElementById('edit-medicine-cost-price').value),
+        barcode: document.getElementById('edit-medicine-barcode').value,
+        imageUrl: document.getElementById('edit-medicine-image-url').value,
+        strength: document.getElementById('edit-medicine-strength').value,
+        description: document.getElementById('edit-medicine-description').value,
+        categoryId: document.getElementById('edit-medicine-category').value ? Number(document.getElementById('edit-medicine-category').value) : null,
+        manufacturerId: document.getElementById('edit-medicine-manufacturer').value ? Number(document.getElementById('edit-medicine-manufacturer').value) : null
+    };
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/medicines/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            showAlert('Cập nhật thuốc thành công', 'success');
+            bootstrap.Modal.getInstance(modalEl).hide();
+            await loadMedicines();
+        } else {
+            showAlert('Cập nhật thuốc thất bại', 'danger');
+        }
+    } catch (e) {
+        console.error(e);
+        showAlert('Cập nhật thuốc thất bại', 'danger');
+    }
+}
+
 async function importStock() {
     const medicineId = document.getElementById('import-medicine').value;
     const quantity = parseInt(document.getElementById('import-quantity').value);
@@ -431,8 +614,10 @@ async function importStock() {
     }
     
     try {
-        const response = await fetch(`${API_BASE_URL}/inventory/medicine/${medicineId}/add-stock?quantity=${quantity}`, {
-            method: 'POST'
+        const response = await fetch(`${API_BASE_URL}/inventory/medicine/${medicineId}/add-stock`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ quantity })
         });
         
         if (response.ok) {
@@ -463,8 +648,10 @@ async function exportStock() {
     }
     
     try {
-        const response = await fetch(`${API_BASE_URL}/inventory/medicine/${medicineId}/reduce-stock?quantity=${quantity}`, {
-            method: 'POST'
+        const response = await fetch(`${API_BASE_URL}/inventory/medicine/${medicineId}/reduce-stock`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ quantity })
         });
         
         if (response.ok) {
@@ -566,25 +753,171 @@ function showAlert(message, type) {
     }, 5000);
 }
 
+// Image upload for medicines
+async function uploadMedicineImage() {
+    const fileInput = document.getElementById('medicine-image-file');
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        showAlert('Vui lòng chọn một file ảnh', 'warning');
+        return;
+    }
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/upload-image`, {
+            method: 'POST',
+            headers: ADMIN_AUTH_TOKEN() ? { 'Authorization': `Basic ${ADMIN_AUTH_TOKEN()}` } : {},
+            body: formData
+        });
+        if (!res.ok) {
+            throw new Error('Upload thất bại');
+        }
+        const data = await res.json();
+        const url = data.url;
+        if (url) {
+            const urlInput = document.getElementById('medicine-image-url');
+            urlInput.value = url.startsWith('http') ? url : `${window.location.origin}${url}`;
+            showAlert('Tải ảnh thành công', 'success');
+        } else {
+            showAlert('Không nhận được URL ảnh', 'danger');
+        }
+    } catch (e) {
+        console.error('Upload error:', e);
+        showAlert('Tải ảnh thất bại', 'danger');
+    }
+}
+
+async function uploadEditMedicineImage() {
+    const fileInput = document.getElementById('edit-medicine-image-file');
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        showAlert('Vui lòng chọn một file ảnh', 'warning');
+        return;
+    }
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/admin/upload-image`, {
+            method: 'POST',
+            headers: ADMIN_AUTH_TOKEN() ? { 'Authorization': `Basic ${ADMIN_AUTH_TOKEN()}` } : {},
+            body: formData
+        });
+        if (!res.ok) throw new Error('Upload thất bại');
+        const data = await res.json();
+        const url = data.url;
+        if (url) {
+            const urlInput = document.getElementById('edit-medicine-image-url');
+            urlInput.value = url.startsWith('http') ? url : `${window.location.origin}${url}`;
+            showAlert('Tải ảnh thành công', 'success');
+        } else {
+            showAlert('Không nhận được URL ảnh', 'danger');
+        }
+    } catch (e) {
+        console.error('Upload error:', e);
+        showAlert('Tải ảnh thất bại', 'danger');
+    }
+}
+
 // Placeholder functions for future implementation
 function editMedicine(id) {
-    showAlert('Chức năng chỉnh sửa đang được phát triển', 'info');
+    fetch(`${API_BASE_URL}/medicines/${id}`)
+        .then(res => res.json())
+        .then(m => {
+            Promise.all([
+                fetch(`${API_BASE_URL}/categories`).then(r => r.json()),
+                fetch(`${API_BASE_URL}/manufacturers`).then(r => r.json())
+            ]).then(([cats, mans]) => {
+                const catSelect = document.getElementById('edit-medicine-category');
+                const manSelect = document.getElementById('edit-medicine-manufacturer');
+                catSelect.innerHTML = '<option value="">-- Chọn danh mục --</option>';
+                manSelect.innerHTML = '<option value="">-- Chọn nhà sản xuất --</option>';
+                cats.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.name;
+                    if (m.categoryId && Number(m.categoryId) === Number(c.id)) opt.selected = true;
+                    catSelect.appendChild(opt);
+                });
+                mans.forEach(ma => {
+                    const opt = document.createElement('option');
+                    opt.value = ma.id;
+                    opt.textContent = ma.name;
+                    if (m.manufacturerId && Number(m.manufacturerId) === Number(ma.id)) opt.selected = true;
+                    manSelect.appendChild(opt);
+                });
+            }).catch(() => {});
+            document.getElementById('edit-medicine-code').value = m.code || '';
+            document.getElementById('edit-medicine-name').value = m.name || '';
+            document.getElementById('edit-medicine-generic-name').value = m.genericName || '';
+            document.getElementById('edit-medicine-unit').value = m.unit || '';
+            document.getElementById('edit-medicine-price').value = m.price || 0;
+            document.getElementById('edit-medicine-cost-price').value = m.costPrice || 0;
+            document.getElementById('edit-medicine-barcode').value = m.barcode || '';
+            document.getElementById('edit-medicine-image-url').value = m.imageUrl || '';
+            document.getElementById('edit-medicine-strength').value = m.strength || '';
+            document.getElementById('edit-medicine-description').value = m.description || '';
+            const modal = new bootstrap.Modal(document.getElementById('editMedicineModal'));
+            modal.show();
+            document.getElementById('editMedicineModal').setAttribute('data-edit-id', String(id));
+        })
+        .catch(() => showAlert('Không tải được dữ liệu thuốc', 'danger'));
 }
 
 function viewMedicineDetails(id) {
-    showAlert('Chức năng xem chi tiết đang được phát triển', 'info');
+    // Simple viewer: fetch and alert details; could be upgraded to modal
+    fetch(`${API_BASE_URL}/medicines/${id}`)
+        .then(res => res.json())
+        .then(m => {
+            const info = `Mã: ${m.code}\nTên: ${m.name}\nĐơn vị: ${m.unit}\nGiá: ${formatCurrency(m.price)}\nTrạng thái: ${m.status}`;
+            showAlert(info.replaceAll('\n', '<br>'), 'info');
+        })
+        .catch(() => showAlert('Không tải được chi tiết thuốc', 'danger'));
 }
 
 function deleteMedicine(id) {
     if (confirm('Bạn có chắc chắn muốn xóa thuốc này?')) {
-        showAlert('Chức năng xóa đang được phát triển', 'info');
+        fetch(`${API_BASE_URL}/medicines/${id}`, { method: 'DELETE' })
+            .then(res => {
+                if (res.ok) {
+                    showAlert('Đã xóa thuốc', 'success');
+                    loadMedicines();
+                } else {
+                    showAlert('Xóa thuốc thất bại', 'danger');
+                }
+            })
+            .catch(() => showAlert('Xóa thuốc thất bại', 'danger'));
     }
 }
 
 function adjustStock(id, action) {
-    showAlert(`Chức năng ${action === 'add' ? 'thêm' : 'giảm'} tồn kho đang được phát triển`, 'info');
+    const qty = prompt(`Nhập số lượng cần ${action === 'add' ? 'thêm' : 'giảm'}:`);
+    const quantity = parseInt(qty || '0');
+    if (!quantity || quantity <= 0) return;
+    const endpoint = action === 'add' ? 'add-stock' : 'reduce-stock';
+    fetch(`${API_BASE_URL}/inventory/medicine/${id}/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity })
+    }).then(res => {
+        if (res.ok) {
+            showAlert('Cập nhật tồn kho thành công', 'success');
+            loadInventory();
+            loadDashboardData();
+        } else {
+            showAlert('Cập nhật tồn kho thất bại', 'danger');
+        }
+    }).catch(() => showAlert('Cập nhật tồn kho thất bại', 'danger'));
 }
 
 function viewInventoryDetails(id) {
-    showAlert('Chức năng xem chi tiết tồn kho đang được phát triển', 'info');
+    fetch(`${API_BASE_URL}/inventory/medicine/${id}`)
+        .then(res => res.json())
+        .then(inv => {
+            const stockStatus = getStockStatus(inv.currentStock, inv.minStock, inv.maxStock);
+            const info = `Thuốc: ${inv.medicineName} (${inv.medicineCode})\nTồn: ${inv.currentStock}\nMin/Max: ${inv.minStock}/${inv.maxStock}`;
+            showAlert(info.replaceAll('\n', '<br>'), 'info');
+        })
+        .catch(() => showAlert('Không tải được chi tiết tồn kho', 'danger'));
 }

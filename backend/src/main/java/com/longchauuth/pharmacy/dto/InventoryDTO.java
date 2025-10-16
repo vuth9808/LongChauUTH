@@ -1,7 +1,5 @@
 package com.longchauuth.pharmacy.dto;
 
-import com.longchauuth.pharmacy.entity.Medicine;
-
 import java.time.LocalDateTime;
 
 public class InventoryDTO {
@@ -138,4 +136,3 @@ public class InventoryDTO {
         }
     }
 }
-

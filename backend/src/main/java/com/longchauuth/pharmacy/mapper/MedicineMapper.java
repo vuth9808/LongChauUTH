@@ -21,6 +21,7 @@ public class MedicineMapper {
         dto.setCode(medicine.getCode());
         dto.setName(medicine.getName());
         dto.setGenericName(medicine.getGenericName());
+        dto.setImageUrl(medicine.getImageUrl());
         dto.setUnit(medicine.getUnit());
         dto.setDosageForm(medicine.getDosageForm());
         dto.setStrength(medicine.getStrength());
@@ -58,6 +59,7 @@ public class MedicineMapper {
         medicine.setCode(dto.getCode());
         medicine.setName(dto.getName());
         medicine.setGenericName(dto.getGenericName());
+        medicine.setImageUrl(dto.getImageUrl());
         medicine.setUnit(dto.getUnit());
         medicine.setDosageForm(dto.getDosageForm());
         medicine.setStrength(dto.getStrength());
@@ -93,6 +95,7 @@ public class MedicineMapper {
 
         medicine.setName(dto.getName());
         medicine.setGenericName(dto.getGenericName());
+        medicine.setImageUrl(dto.getImageUrl());
         medicine.setUnit(dto.getUnit());
         medicine.setDosageForm(dto.getDosageForm());
         medicine.setStrength(dto.getStrength());
@@ -118,4 +121,3 @@ public class MedicineMapper {
         }
     }
 }
-

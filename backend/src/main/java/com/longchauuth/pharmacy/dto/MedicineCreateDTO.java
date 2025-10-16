@@ -16,6 +16,7 @@ public class MedicineCreateDTO {
     private String name;
 
     private String genericName;
+    private String imageUrl;
 
     @NotNull(message = "Danh mục không được để trống")
     private Long categoryId;
@@ -81,6 +82,14 @@ public class MedicineCreateDTO {
 
     public void setGenericName(String genericName) {
         this.genericName = genericName;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public Long getCategoryId() {
@@ -171,4 +180,3 @@ public class MedicineCreateDTO {
         this.batchNumber = batchNumber;
     }
 }
-

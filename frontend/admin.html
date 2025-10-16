@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - LongChauUTH</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-light">
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+    <div class="card shadow-sm" style="max-width: 420px; width: 100%;">
+        <div class="card-body p-4">
+            <h3 class="card-title mb-3 text-center">Đăng nhập Admin</h3>
+            <div class="mb-3">
+                <label for="username" class="form-label">Tài khoản</label>
+                <input type="text" id="username" class="form-control" placeholder="Tài khoản">
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Mật khẩu</label>
+                <input type="password" id="password" class="form-control" placeholder="Mật khẩu">
+            </div>
+            <button id="login-btn" class="btn btn-primary w-100">Đăng nhập</button>
+            <div id="login-feedback" class="mt-3 text-danger" style="display:none;"></div>
+        </div>
+    </div>
+    
+    <div id="alert-container"></div>
+    
+    <script>
+        const API_BASE_URL = 'http://localhost:8080/api';
+        const loginBtn = document.getElementById('login-btn');
+        const feedback = document.getElementById('login-feedback');
+
+        loginBtn.addEventListener('click', async () => {
+            feedback.style.display = 'none';
+            const username = document.getElementById('username').value ;
+            const password = document.getElementById('password').value ;
+            const token = btoa(`${username}:${password}`);
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/admin/ping`, {
+                    headers: { 'Authorization': `Basic ${token}` }
+                });
+                if (res.ok) {
+                    sessionStorage.setItem('adminAuth', token);
+                    window.location.href = 'index.html';
+                } else if (res.status === 401) {
+                    feedback.textContent = 'Sai tài khoản hoặc mật khẩu';
+                    feedback.style.display = 'block';
+                } else {
+                    feedback.textContent = 'Đăng nhập thất bại';
+                    feedback.style.display = 'block';
+                }
+            } catch (e) {
+                feedback.textContent = 'Không kết nối được máy chủ';
+                feedback.style.display = 'block';
+            }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</div>
+</body>
+</html>
+
+

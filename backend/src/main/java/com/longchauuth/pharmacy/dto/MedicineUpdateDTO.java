@@ -13,6 +13,7 @@ public class MedicineUpdateDTO {
     private String name;
 
     private String genericName;
+    private String imageUrl;
 
     @NotNull(message = "Danh mục không được để trống")
     private Long categoryId;
@@ -69,6 +70,14 @@ public class MedicineUpdateDTO {
 
     public void setGenericName(String genericName) {
         this.genericName = genericName;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public Long getCategoryId() {
@@ -159,4 +168,3 @@ public class MedicineUpdateDTO {
         this.batchNumber = batchNumber;
     }
 }
-
