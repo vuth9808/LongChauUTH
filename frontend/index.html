@@ -380,7 +380,15 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="medicine-unit" class="form-label">Đơn vị *</label>
-                                    <input type="text" class="form-control" id="medicine-unit" required>
+                                    <select class="form-select" id="medicine-unit" required>
+                                        <option value="">-- Chọn đơn vị --</option>
+                                        <option value="Hộp">Hộp</option>
+                                        <option value="Vỉ">Vỉ</option>
+                                        <option value="Viên">Viên</option>
+                                        <option value="Ống">Ống</option>
+                                        <option value="Chai">Chai</option>
+                                    </select>
+
                                 </div>
                             </div>
                         </div>
@@ -429,6 +437,21 @@
                                     <input type="text" class="form-control" id="medicine-strength">
                                 </div>
                             </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="medicine-manufacture-date" class="form-label">Ngày sản xuất *</label>
+                                    <input type="date" class="form-control" id="medicine-manufacture-date" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="medicine-expiry-date" class="form-label">Hạn sử dụng *</label>
+                                    <input type="date" class="form-control" id="medicine-expiry-date" required>
+                                </div>
+                            </div>
+
+
                         </div>
                         <div class="mb-3">
                             <label for="medicine-description" class="form-label">Mô tả</label>
@@ -478,7 +501,15 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Đơn vị *</label>
-                                    <input type="text" class="form-control" id="edit-medicine-unit" required>
+                                    <select class="form-select" id="medicine-unit" required>
+                                        <option value="">-- Chọn đơn vị --</option>
+                                        <option value="Hộp">Hộp</option>
+                                        <option value="Vỉ">Vỉ</option>
+                                        <option value="Viên">Viên</option>
+                                        <option value="Ống">Ống</option>
+                                        <option value="Chai">Chai</option>
+                                    </select>
+
                                 </div>
                             </div>
                         </div>
