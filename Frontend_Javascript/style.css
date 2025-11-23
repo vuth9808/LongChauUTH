@@ -1,0 +1,18 @@
+body { font-family: 'Roboto', sans-serif; background-color: #f3f4f6; }
+.modal { transition: opacity 0.25s ease; }
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #1d4ed8; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #1e40af; }
+
+/* Table Styles */
+th { font-weight: 600; color: #6b7280; }
+td { color: #374151; }
